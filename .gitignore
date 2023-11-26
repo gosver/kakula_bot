@@ -1,5 +1,10 @@
 __pycache__
 /_experement
 /env
+/.idea
+
 .env
+.env_prod
+
 _log.txt
+*.sql

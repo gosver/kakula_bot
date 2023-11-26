@@ -12,7 +12,7 @@ from my_modules.log import write_log
 load_dotenv()
 token = os.getenv("TLG_TOKEN")
 db = json.loads(os.getenv("DATA_BASE"))
-tuple_of_access = os.getenv("TLG_TUPLE_OF_ACCESS").split(',')
+#tuple_of_access = os.getenv("TLG_TUPLE_OF_ACCESS").split(',')
 
 #telegram bot
 
@@ -35,11 +35,11 @@ def telegram_bot(token):
         try:
             
             #check_access
-            check_access = False
-            for access in tuple_of_access:
-                if access == str(message.from_user.id):
-                    check_access = True
-                    break
+            check_access = True
+            #for access in tuple_of_access:
+            #    if access == str(message.from_user.id):
+            #        check_access = True
+            #        break
             
             if not check_access:
                 raise exception_empty('')
@@ -55,6 +55,9 @@ def telegram_bot(token):
             dbOperation.connect()
             dbOperation.check_tables()
             dbOperation.select_chatid(chat_id)
+            free_count_finish = dbOperation.get_active_status(chat_id)
+            if free_count_finish:
+                raise exception_message_clear(free_count_finish)
             value_from_db = dbOperation.get_value(chat_id)
             
             #check operand
@@ -64,16 +67,34 @@ def telegram_bot(token):
                 new_value = int(value_from_db) - int(value_from_user['value'])
             else:
                 raise Exception("Не тот операнд - value_from_user['operand']")
-            
+
+            ### get group or private
+            if message.chat.type == 'group':
+                if message.chat.title is not None:
+                    name = message.chat.title
+                else:
+                    name = ''
+            elif message.chat.type == 'private':
+                if message.chat.first_name is not None and message.chat.last_name is not None:
+                    name = message.chat.first_name+' '+message.chat.last_name
+                elif message.chat.first_name is not None:
+                    name = message.chat.first_name
+                elif message.chat.last_name is not None:
+                    name = message.chat.last_name
+                else:
+                    name = ''
+                if message.chat.username is not None:
+                    name += ' @'+message.chat.username
+
+
             #set value
-            send_value = dbOperation.set_value_db(new_value, chat_id)
+            send_value = dbOperation.set_value_db(new_value, name, chat_id)
             
             #send value
             send_value = '\U0001F911\U0001F911\U0001F911'+'\n'+str(send_value)
             bot.send_message(message.chat.id, send_value)
-            
+
         #exceptions
-            
         except exception_empty:
             pass
         except exception_message_clear as ex: 
